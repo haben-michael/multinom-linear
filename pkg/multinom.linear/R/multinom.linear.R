@@ -28,10 +28,11 @@ simplex.grid <- function(k,d) {
 }
 
 
-#' Sample points the intersection of the probability simpler with
-#' $\\{c^tx=1\\}$
+#' Sample points on the intersection of the probability simplex with
+#' $\\{c^tx=1\\}$.
 #'
-#' This sampling routine is relatively fast but non-uniform. See the referenced manuscript for details.
+#' This sampling routine is relatively fast but non-uniform. See the
+#' referenced manuscript for details.
 
 #' @param n the number of points to sample
 #' @param c the coefficient vector
@@ -55,8 +56,8 @@ p.sampler.1 <- function(n,c,shape=1) {
     us <- t(us) / rowSums(t(us))
 }
 
-#' Sample points the intersection of the probability simpler with
-#' $\\{c^tx=1\\}$
+#' Sample points on the intersection of the probability simplex with
+#' $\\{c^tx=1\\}$.
 #'
 #' This sampling routine is relatively slow but allows for
 #' deterministic or stochastic sampling.  See the referenced
@@ -91,6 +92,24 @@ p.sampler.2 <- function(n,c,concentration=1,tol=1e-6) {
     }
     u <- w%*%vv
 }
+
+
+
+p.sampler.singular <- function(n,c) {
+    m <- length(c)
+    zeros.idx <- which(abs(c)<.Machine$double.eps)
+    if(length(zeros.idx)==0)return(NA)
+    n.vertices <- function(n,k)gamma(k+n)/gamma(n)/gamma(k+1)
+    f <- function(k)n.vertices(m,k)-n
+    k <- uniroot(f,interval=c(0,1),extendInt='yes')$root
+    k <- round(k)
+    stopifnot(k>0)
+    simplex <- t(simplex.grid(k=k,d=length(zeros.idx)))
+    out <- matrix(0,nrow(simplex),m)
+    out[,zeros.idx] <- simplex
+    return(out)
+}
+
 
 
 ## projection
@@ -196,7 +215,7 @@ p.val.mc <- function(p,p.obs,n,n.ref.samples,c,T) {
 }
 
 
-#' Confidence Interval for a linear function of a multinomial
+#' Confidence interval for a linear function of a multinomial
 #' parameter
 #' 
 #' This routine computes p-values for a hypothesis test at a grid of
@@ -263,11 +282,12 @@ p.val.mc <- function(p,p.obs,n,n.ref.samples,c,T) {
 #' plot(ml)
 
 multinom.linear <- function(p.obs,c,n,theta,n.ref.samples=1e2,test.stat,p.sampler,theta.resolution=50,p.resolution=NULL,...) {
-    if(is.null(theta)) theta <- seq(min(c),max(c),len=theta.resolution)
+    ## browser()
+    if(is.null(theta)) theta <- seq(min(c),max(c),len=theta.resolution) else theta <- sort(unique(theta))
     p.by.theta <- lapply(theta, function(theta.i) {
         p.sampler(n=p.resolution,c=c/theta.i,...)
     })
-
+    p.by.theta[[which(abs(theta)<.Machine$double.eps)]]  <-  p.sampler.singular(n=p.resolution,c=c,...)
     
     p.val.bins <- lapply(p.by.theta, function(p){
         if(anyNA(p))return(NaN)
