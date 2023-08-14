@@ -215,7 +215,7 @@ p.val.mc <- function(p,p.obs,n,n.ref.samples,c,T) {
 }
 
 
-#' Confidence interval for a linear function of a multinomial
+#' Confidence intervals for a linear function of a multinomial
 #' parameter
 #' 
 #' This routine computes p-values for a hypothesis test at a grid of
@@ -282,12 +282,11 @@ p.val.mc <- function(p,p.obs,n,n.ref.samples,c,T) {
 #' plot(ml)
 
 multinom.linear <- function(p.obs,c,n,theta,n.ref.samples=1e2,test.stat,p.sampler,theta.resolution=50,p.resolution=NULL,...) {
-    ## browser()
     if(is.null(theta)) theta <- seq(min(c),max(c),len=theta.resolution) else theta <- sort(unique(theta))
     p.by.theta <- lapply(theta, function(theta.i) {
         p.sampler(n=p.resolution,c=c/theta.i,...)
     })
-    p.by.theta[[which(abs(theta)<.Machine$double.eps)]]  <-  p.sampler.singular(n=p.resolution,c=c,...)
+    if(abs(theta[1])<.Machine$double.eps) p.by.theta[[1]] <- p.sampler.singular(n=p.resolution,c=c,...)
     
     p.val.bins <- lapply(p.by.theta, function(p){
         if(anyNA(p))return(NaN)
